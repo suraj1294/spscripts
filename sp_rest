@@ -1,6 +1,6 @@
 //get formDigest
 $.ajax({
-        url: <<sitesUrl>>/_api/contextinfo',
+        url: '<<sitesUrl>>/_api/contextinfo',
         type: 'post',
         headers: {
             'Accept': 'application/json',
@@ -16,7 +16,7 @@ $.ajax({
 
 //Make post request
 $.ajax({
-        url: 'https://spo-teamsite.ge.com/sites/TpERSIDB_Community/TestERSSite/_api/contextinfo',
+        url: '<<sitesUrl>>/_api/contextinfo',
         type: 'post',
         headers: {
             'Accept': 'application/json',
