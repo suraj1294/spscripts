@@ -1,0 +1,122 @@
+var user = SPClientPeoplePicker.SPClientPeoplePickerDict[document.querySelector('div[id^=SQM]').getAttribute('id')]
+
+function createListItem() {
+    var clientContext = new SP.ClientContext.get_current();
+    var web = clientContext.get_web();
+    var oList = web.get_lists().getByTitle('Test');
+
+    var itemCreateInfo = new SP.ListItemCreationInformation();
+    this.oListItem = oList.addItem(itemCreateInfo);
+    this.users = web.ensureUser(user.GetAllUserInfo()[0].Key);
+    oListItem.set_item('Title' + , 'My New Item!');
+    oListItem.set_item('user', users); //or pass user id
+    oListItem.update();
+    clientContext.load(users);
+    clientContext.load(oListItem);
+    clientContext.executeQueryAsync(function () {
+        alert('Item created: ' + oListItem.get_id());
+        console.log(users.get_id())
+    }, function (sender, args) {
+        alert('Request failed. ' + args.get_message() + '\n' + args.get_stackTrace());
+    });
+}
+------------------------------------------------------------------------------------------------------------
+//retrive list items
+function retrieveListItems() {
+    var clientContext = new SP.ClientContext.get_current();
+    var oList = clientContext.get_web().get_lists().getByTitle('TestThreshold');
+
+    var camlQuery = new SP.CamlQuery();
+    camlQuery.set_viewXml('<View><RowLimit>5000</RowLimit></View>');
+
+    this.collListItem = oList.getItems(camlQuery);
+
+    clientContext.load(collListItem, 'Include(Id,Title)');
+
+    clientContext.executeQueryAsync(function onQuerySucceeded(sender, args) {
+        var listItemInfo = '';
+
+        var listItemEnumerator = collListItem.getEnumerator();
+        console.log(collListItem.get_count())
+
+        while (listItemEnumerator.moveNext()) {
+            var oListItem = listItemEnumerator.get_current();
+            listItemInfo += '\nID: ' + oListItem.get_id() +
+                '\nTitle: ' + oListItem.get_item('Title')
+        }
+
+        console.log(listItemInfo);
+    }, function onQueryFailed(sender, args) {
+
+        alert('Request failed. ' + args.get_message() + '\n' + args.get_stackTrace());
+
+    });
+
+}
+-----------------------------------------------------------------------------------------------------------
+//retrive list items with pagination
+(function (SP) {
+        var
+            ctx = SP.ClientContext.get_current(),
+            list = ctx.get_web().get_lists().getByTitle('TestThreshold'),
+            position,
+            enumerator,
+            view = '<View><ViewFields><FieldRef Name="Title"/></ViewFields><RowLimit>5000</RowLimit></View>',
+            query = new SP.CamlQuery(),
+            items,
+            init = function () {
+                query.set_viewXml(view);
+            },
+            loadChunks = function () {
+                query.set_listItemCollectionPosition(position);
+                items = list.getItems(query);
+                ctx.load(items);
+                ctx.executeQueryAsync(success, error);
+            },
+            success = function () {
+                console.log("\nFound Matching Items! ");
+                console.log(items.get_count())
+                enumerator = items.getEnumerator();
+                while (enumerator.moveNext()) {
+                    console.log("Title: " + enumerator.get_current().get_item("Title"));
+                }
+                position = items.get_listItemCollectionPosition();
+                //when there are no items position is null
+                position && loadChunks();
+            },
+            error = function (sender, args) {
+                console.log('Request failed. Error: ' + args.get_message() + '. StackTrace: ' + args.get_stackTrace());
+            };
+
+        init();
+        loadChunks();
+    })(SP);
+ -------------------------------------------------------------------------------------------------------------------------------   
+  create items recursively
+  (function (SP) {
+    var count = 0,
+        clientContext = SP.ClientContext.get_current(),
+        web = clientContext.get_web(),
+        oList = web.get_lists().getByTitle('TestThreshold'),
+        itemCreateInfo = SP.ListItemCreationInformation(),
+        oListItem,     
+        createListItem = function() {            
+            oListItem = oList.addItem(itemCreateInfo);
+            oListItem.set_item('Title', 'Item '+ count);
+            oListItem.update();            
+            clientContext.load(oListItem);
+            clientContext.executeQueryAsync(success, error);
+        },
+        success = function(){         
+                //alert('Item created: ' + oListItem.get_id());
+                count += 1;
+                console.log(oListItem.get_id());
+                if(count <= 5100 )
+                createListItem();            
+        },
+        error = function(sender, args) {
+                alert('Request failed. ' + args.get_message() + '\n' + args.get_stackTrace());            
+        };    
+    SP.SOD.executeFunc('sp.js','SP.ClientContext',createListItem)
+})(SP)
+-----------------------------------------------------------------------------------------------------------------------------------
